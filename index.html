@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tramvaje do centra</title>
+    <title>PID spoje</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -17,13 +17,37 @@
             transform: translateY(-4px);
             box-shadow: 0 8px 12px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
+        /* Styly pro přepínač */
+        .toggle-dot {
+            transition: transform 0.2s ease-in-out;
+        }
+        #view-toggle:checked ~ .toggle-dot {
+            transform: translateX(100%);
+        }
+        #view-toggle:checked ~ .toggle-bg {
+            background-color: #38a169; /* Zelená pro aktivní autobusy */
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
     <div class="container mx-auto p-2 md:p-4">
-        <header class="text-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Tramvaje do centra</h1>
+        <header class="text-center mb-4">
+            <h1 id="main-title" class="text-3xl font-bold text-gray-800 dark:text-white">Načítání...</h1>
+            
+            <!-- Přepínač zobrazení -->
+            <div class="flex justify-center items-center my-4">
+                <span class="text-gray-600 dark:text-gray-400 font-medium mr-3">Tramvaje</span>
+                <label for="view-toggle" class="flex items-center cursor-pointer">
+                    <div class="relative">
+                        <input type="checkbox" id="view-toggle" class="sr-only">
+                        <div class="toggle-bg block bg-gray-600 w-14 h-8 rounded-full"></div>
+                        <div class="toggle-dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full"></div>
+                    </div>
+                </label>
+                <span class="text-gray-600 dark:text-gray-400 font-medium ml-3">Autobusy</span>
+            </div>
+
             <p id="stop-name" class="text-md text-gray-600 dark:text-gray-400 mt-1">Načítání informací o zastávce...</p>
             <p id="last-refreshed" class="text-sm text-gray-500 dark:text-gray-400 mt-1"></p>
         </header>
@@ -39,7 +63,7 @@
         
         <div id="error-message" class="hidden text-center mt-8 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 px-4 py-3 rounded-lg">
             <strong class="font-bold">Chyba:</strong>
-            <span class="block sm:inline">Nepodařilo se načíst data o odjezdech. Zkontrolujte prosím konzoli pro více detailů.</span>
+            <span class="block sm:inline">Nepodařilo se načíst data o odjezdech.</span>
         </div>
         
         <footer class="text-center mt-10 text-xs text-gray-500 dark:text-gray-400">
@@ -54,22 +78,34 @@
         const errorMessage = document.getElementById('error-message');
         const stopNameElement = document.getElementById('stop-name');
         const lastRefreshedElement = document.getElementById('last-refreshed');
+        const viewToggle = document.getElementById('view-toggle');
+        const mainTitle = document.getElementById('main-title');
 
         let lastRefreshTime = null;
         let refreshTimerInterval = null;
         
-        // Konfigurace pro zastávku podle dokumentace.
-        const STOP_ID = "U266Z1P"; // GTFS ID pro "Kněžská luka"
-        const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MzcxMiwiaWF0IjoxNzUwNTE0MDcxLCJleHAiOjExNzUwNTE0MDcxLCJpc3MiOiJnb2xlbWlvIiwianRpIjoiOGJlMGQ1NDAtZDViYy00Y2JlLWEyYjMtNjExNzhjOGQ0ODg0In0.3FPdE3LJ8Nqg0mqLALdY2CO2dqLr8E0cxwEVIWZBO_8";
+        // OPRAVA: Vráceno zpět k používání přesných ID zastávek
+        const views = {
+            trams: {
+                title: 'Tramvaje do centra',
+                stopId: 'U266Z1P', 
+                stopName: 'Kněžská luka', // Pro zobrazení
+                vehicleType: 'tram'
+            },
+            buses: {
+                title: 'Autobusy ze Spojovací',
+                stopId: 'U694Z3P',
+                stopName: 'Spojovací', // Pro zobrazení
+                vehicleType: 'bus'
+            }
+        };
 
-        // Konfigurace pro opakované pokusy
+        let currentViewKey = 'trams'; // Výchozí zobrazení
+
+        const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MzcxMiwiaWF0IjoxNzUwNTE1NjQxLCJleHAiOjExNzUwNTE1NjQxLCJpc3MiOiJnb2xlbWlvIiwianRpIjoiMWRlNWRmNzktNDE0My00NjM0LTljOGItYzMzYzUxYjJkMmJhIn0.eoiW2CqdFEv6qZBEd-_7_L2rHGj-nZlxAfsK7YcLRmY";
         const MAX_RETRIES = 3;
-        const RETRY_DELAY = 3000; // 3 sekundy
+        const RETRY_DELAY = 3000;
 
-        // Golemio API endpoint pro odjezdové tabule.
-        const API_URL = `https://api.golemio.cz/v2/pid/departureboards?ids=${STOP_ID}&minutesAfter=120`;
-
-        // Pomocná funkce pro vytvoření prodlevy
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
@@ -80,13 +116,16 @@
             lastRefreshedElement.textContent = `Aktualizováno před ${secondsAgo} s`;
         }
         
-        async function fetchTramDepartures() {
+        async function fetchDepartures() {
             loadingIndicator.style.display = 'block';
             errorMessage.style.display = 'none';
+            
+            const viewConfig = views[currentViewKey];
+            // OPRAVA: URL adresa je nyní sestavena pomocí parametru 'ids'
+            const API_URL = `https://api.golemio.cz/v2/pid/departureboards?ids=${viewConfig.stopId}&minutesAfter=120`;
 
             for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
                 try {
-                    // Sestavení a provedení dotazu na API dle dokumentace
                     const response = await fetch(API_URL, {
                         headers: {
                             'Accept': 'application/json',
@@ -104,24 +143,22 @@
 
                     lastRefreshTime = new Date();
                     if (!refreshTimerInterval) {
-                        updateRefreshTimer(); // Spustit okamžitě
-                        refreshTimerInterval = setInterval(updateRefreshTimer, 1000);
+                        updateRefreshTimer();
+                        setInterval(updateRefreshTimer, 1000);
                     }
                     
                     loadingIndicator.style.display = 'none';
-                    return; // Úspěch, opustit funkci
+                    return;
 
                 } catch (error) {
                     console.error(`Pokus ${attempt} selhal:`, error);
                     if (attempt === MAX_RETRIES) {
-                        // Toto byl poslední pokus, zobrazit chybovou hlášku
                         const errorSpan = errorMessage.querySelector('span');
                         errorSpan.textContent = `Nepodařilo se načíst data po několika pokusech. Důvod: ${error.message}`;
                         errorMessage.style.display = 'block';
                         departuresContainer.innerHTML = '';
                         loadingIndicator.style.display = 'none';
                     } else {
-                        // Počkat před dalším pokusem
                         await sleep(RETRY_DELAY);
                     }
                 }
@@ -130,22 +167,27 @@
 
         function displayDepartures(data) {
             departuresContainer.innerHTML = ''; 
+            const viewConfig = views[currentViewKey];
 
-            if (!data.departures || data.departures.length === 0) {
+            const filteredDepartures = data.departures.filter(dep => dep.route.type === viewConfig.vehicleType);
+
+            if (filteredDepartures.length === 0) {
                 if (data.stops && data.stops.length > 0) {
                      stopNameElement.textContent = `Zastávka: ${data.stops[0].stop_name}`;
                 } else {
-                     stopNameElement.textContent = `Zastávka: Kněžská luka`;
+                     stopNameElement.textContent = `Zastávka: ${viewConfig.stopName}`;
                 }
-                departuresContainer.innerHTML = `<p class="text-center col-span-full text-gray-500 dark:text-gray-400">Pro tuto zastávku nebyly nalezeny žádné nadcházející odjezdy tramvají.</p>`;
+                departuresContainer.innerHTML = `<p class="text-center col-span-full text-gray-500 dark:text-gray-400">Pro tuto zastávku nebyly nalezeny žádné nadcházející odjezdy (${viewConfig.vehicleType}).</p>`;
                 return;
             }
             
             if(data.stops && data.stops.length > 0) {
-                stopNameElement.textContent = `Zastávka: ${data.stops[0].stop_name}`;
+                 stopNameElement.textContent = `Zastávka: ${data.stops[0].stop_name}`;
+            } else {
+                 stopNameElement.textContent = `Zastávka: ${viewConfig.stopName}`;
             }
             
-            data.departures.forEach(departure => {
+            filteredDepartures.forEach(departure => {
                 const departureTime = new Date(departure.departure_timestamp.predicted);
                 const timeString = departureTime.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
                 
@@ -163,22 +205,21 @@
                     delayInfo = `<span class="text-gray-500 dark:text-gray-400">Info o zpoždění nedostupné</span>`
                 }
                 
-                // Barevné odlišení linek
-                let lineColor = '#3b82f6'; // Default blue
-                const tramNumber = departure.route.short_name;
-                if (tramNumber === '9') {
-                    lineColor = '#009ee0';
-                } else if (tramNumber === '11') {
-                    lineColor = '#02964f';
-                } else if (tramNumber === '31') {
-                    lineColor = '#808080';
+                let lineColor = '#d97706'; // Výchozí oranžová pro autobusy
+                const lineNumber = departure.route.short_name;
+                
+                if (viewConfig.vehicleType === 'tram') {
+                    if (lineNumber === '9') lineColor = '#009ee0';
+                    else if (lineNumber === '11') lineColor = '#02964f';
+                    else if (lineNumber === '31') lineColor = '#808080';
+                    else lineColor = '#3b82f6'; // Výchozí modrá pro ostatní tramvaje
                 }
 
                 const card = `
                     <div class="tram-card bg-white dark:bg-gray-800 rounded-lg shadow p-3">
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex items-center min-w-0">
-                                <span style="background-color: ${lineColor};" class="text-white text-lg font-bold rounded-md w-10 h-8 flex items-center justify-center flex-shrink-0">${tramNumber}</span>
+                                <span style="background-color: ${lineColor};" class="text-white text-lg font-bold rounded-md w-10 h-8 flex items-center justify-center flex-shrink-0">${lineNumber}</span>
                                 <h2 class="text-lg font-semibold ml-3 text-gray-800 dark:text-white truncate" title="${departure.trip.headsign}">${departure.trip.headsign}</h2>
                             </div>
                             <div class="text-xl font-bold text-gray-900 dark:text-gray-100 flex-shrink-0 ml-2">${timeString}</div>
@@ -195,11 +236,25 @@
             });
         }
 
-        // Načíst data při prvním spuštění
-        fetchTramDepartures();
+        function updateView() {
+            currentViewKey = viewToggle.checked ? 'buses' : 'trams';
+            const currentView = views[currentViewKey];
 
-        // Automatické obnovení každých 30 sekund
-        setInterval(fetchTramDepartures, 30000);
+            mainTitle.textContent = currentView.title;
+            stopNameElement.textContent = 'Načítání informací o zastávce...';
+            lastRefreshedElement.textContent = '';
+            if(refreshTimerInterval) clearInterval(refreshTimerInterval);
+            refreshTimerInterval = null;
+            lastRefreshTime = null;
+            
+            fetchDepartures();
+        }
+
+        viewToggle.addEventListener('change', updateView);
+        
+        updateView();
+
+        setInterval(fetchDepartures, 30000);
     </script>
 
 </body>
