@@ -4,221 +4,168 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tramvaje do centra</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Základní styly pro maximální kompatibilitu */
         body {
-            font-family: sans-serif;
-            background-color: #f0f0f0;
-            color: #000;
-            margin: 0;
-            padding: 8px;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .header {
-            text-align: center;
-            padding-bottom: 10px;
-        }
-        h1 {
-            font-size: 20px;
-            margin: 0 0 5px 0;
-        }
-        #stop-name, #last-refreshed {
-            font-size: 14px;
-            margin: 2px 0;
-        }
-        .refresh-button {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            font-weight: bold;
-            font-size: 16px;
-            text-align: center;
-            background-color: #007bff;
-            color: #fff;
-            text-decoration: none;
-            border: 1px solid #0056b3;
-            border-radius: 4px;
+            font-family: 'Inter', sans-serif;
         }
         .tram-card {
-            background-color: #fff;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            padding: 8px;
-            margin-bottom: 8px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-        .card-top {
-            display: table;
-            width: 100%;
-            margin-bottom: 5px;
+        .tram-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 12px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
-        .line-box, .destination, .time {
-            display: table-cell;
-            vertical-align: middle;
-        }
-        .line-box {
-            width: 40px;
-        }
-        .destination {
-            padding-left: 8px;
-            font-size: 16px;
-            font-weight: bold;
-        }
-        .time {
-            width: 50px;
-            text-align: right;
-            font-size: 18px;
-            font-weight: bold;
-        }
-        .line-number {
-            color: #fff;
-            font-size: 16px;
-            font-weight: bold;
-            width: 36px;
-            height: 28px;
-            text-align: center;
-            line-height: 28px; /* Vertikální zarovnání textu */
-            border-radius: 4px;
-            display: block;
-        }
-        .card-bottom {
-            border-top: 1px solid #eee;
-            padding-top: 5px;
-            font-size: 12px;
-            color: #555;
-        }
-        .delay { float: left; }
-        .platform { float: right; }
-        .clear { clear: both; } /* Pro vyčištění floatů */
-
-        #loading-indicator, #error-message {
-            text-align: center;
-            padding: 15px;
-            font-size: 14px;
-        }
-        .hidden { display: none; }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
 
-    <div class="container">
-        <div class="header">
-            <h1>Tramvaje do centra</h1>
-            <p id="stop-name">Načítání...</p>
-            <p id="last-refreshed"></p>
-        </div>
+    <div class="container mx-auto p-2 md:p-4">
+        <header class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Tramvaje do centra</h1>
+            <p id="stop-name" class="text-md text-gray-600 dark:text-gray-400 mt-1">Načítání informací o zastávce...</p>
+            <p id="last-refreshed" class="text-sm text-gray-500 dark:text-gray-400 mt-1"></p>
+        </header>
 
-        <a href="javascript:location.reload();" class="refresh-button">Aktualizovat odjezdy</a>
-
-        <div id="loading-indicator">
-            <p>Načítám nejnovější odjezdy...</p>
-        </div>
-        
-        <div id="error-message" class="hidden">
-            <strong style="color: #d00;">Chyba:</strong>
-            <span id="error-text">Nepodařilo se načíst data.</span>
-        </div>
-
-        <div id="departures-container">
+        <main id="departures-container" class="grid grid-cols-1 gap-4 max-w-lg mx-auto">
             <!-- Data odjezdů budou vložena zde -->
+        </main>
+
+        <div id="loading-indicator" class="text-center mt-8">
+            <p class="text-lg text-gray-500 dark:text-gray-400">Načítám nejnovější odjezdy...</p>
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mt-4"></div>
         </div>
         
-        <div style="text-align: center; font-size: 10px; margin-top: 15px;">
-            <p>Využívá data PID OpenData (Golemio).</p>
+        <div id="error-message" class="hidden text-center mt-8 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 px-4 py-3 rounded-lg">
+            <strong class="font-bold">Chyba:</strong>
+            <span class="block sm:inline">Nepodařilo se načíst data o odjezdech. Zkontrolujte prosím konzoli pro více detailů.</span>
         </div>
+        
+        <footer class="text-center mt-10 text-xs text-gray-500 dark:text-gray-400">
+            <p>Data se automaticky obnovují každých 30 sekund.</p>
+            <p class="mt-1">Využívá data <a href="https://pid.cz/en/opendata/" target="_blank" class="text-blue-500 hover:underline">PID OpenData (Golemio)</a>.</p>
+        </footer>
     </div>
 
-    <script type="text/javascript">
-        // Všechny proměnné definujeme na začátku
-        var departuresContainer = document.getElementById('departures-container');
-        var loadingIndicator = document.getElementById('loading-indicator');
-        var errorMessage = document.getElementById('error-message');
-        var errorText = document.getElementById('error-text');
-        var stopNameElement = document.getElementById('stop-name');
-        var lastRefreshedElement = document.getElementById('last-refreshed');
+    <script>
+        const departuresContainer = document.getElementById('departures-container');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const errorMessage = document.getElementById('error-message');
+        const stopNameElement = document.getElementById('stop-name');
+        const lastRefreshedElement = document.getElementById('last-refreshed');
 
-        // Konfigurace pro zastávku
-        var STOP_ID = "U266Z1P"; // GTFS ID pro "Kněžská luka"
-        var API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MzcxMiwiaWF0IjoxNzUwNTAwOTIxLCJleHAiOjExNzUwNTAwOTIxLCJpc3MiOiJnb2xlbWlvIiwianRpIjoiNGE2MjY3NjYtZjYxOC00MjJhLTkwYTQtMzAyNmQ5ODZiMmY0In0.-aVvSoLgKJr5xv6VdVDW5dPFcJWiMP0TPEi344UJhdE";
-        var API_URL = 'https://api.golemio.cz/v2/pid/departureboards?ids=' + STOP_ID + '&minutesAfter=120';
+        let lastRefreshTime = null;
+        let refreshTimerInterval = null;
+        
+        // Konfigurace pro zastávku podle dokumentace.
+        const STOP_ID = "U266Z1P"; // GTFS ID pro "Kněžská luka"
+        const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MzcxMiwiaWF0IjoxNzUwNTAwOTIxLCJleHAiOjExNzUwNTAwOTIxLCJpc3MiOiJnb2xlbWlvIiwianRpIjoiNGE2MjY3NjYtZjYxOC00MjJhLTkwYTQtMzAyNmQ5ODZiMmY0In0.-aVvSoLgKJr5xv6VdVDW5dPFcJWiMP0TPEi344UJhdE";
 
-        // Funkce pro načtení dat pomocí XMLHttpRequest pro maximální kompatibilitu
-        function fetchTramDepartures() {
-            var xhr = new XMLHttpRequest();
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) { // Požadavek dokončen
-                    loadingIndicator.className = 'hidden'; // Skrýt indikátor načítání
-                    if (xhr.status === 200) {
-                        try {
-                            var data = JSON.parse(xhr.responseText);
-                            displayDepartures(data);
-                        } catch (e) {
-                            showError("Chyba při zpracování dat.");
-                            console.error("JSON Parse Error:", e);
+        // Konfigurace pro opakované pokusy
+        const MAX_RETRIES = 3;
+        const RETRY_DELAY = 3000; // 3 sekundy
+
+        // Golemio API endpoint pro odjezdové tabule.
+        const API_URL = `https://api.golemio.cz/v2/pid/departureboards?ids=${STOP_ID}&minutesAfter=120`;
+
+        // Pomocná funkce pro vytvoření prodlevy
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function updateRefreshTimer() {
+            if (!lastRefreshTime) return;
+            const secondsAgo = Math.round((new Date() - lastRefreshTime) / 1000);
+            lastRefreshedElement.textContent = `Aktualizováno před ${secondsAgo} s`;
+        }
+        
+        async function fetchTramDepartures() {
+            loadingIndicator.style.display = 'block';
+            errorMessage.style.display = 'none';
+
+            for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                try {
+                    // Sestavení a provedení dotazu na API dle dokumentace
+                    const response = await fetch(API_URL, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Access-Token': API_KEY
                         }
+                    });
+
+                    if (!response.ok) {
+                        const errorBody = await response.text();
+                        throw new Error(`HTTP ${response.status}: ${errorBody}`);
+                    }
+
+                    const data = await response.json();
+                    displayDepartures(data);
+
+                    lastRefreshTime = new Date();
+                    if (!refreshTimerInterval) {
+                        updateRefreshTimer(); // Spustit okamžitě
+                        refreshTimerInterval = setInterval(updateRefreshTimer, 1000);
+                    }
+                    
+                    loadingIndicator.style.display = 'none';
+                    return; // Úspěch, opustit funkci
+
+                } catch (error) {
+                    console.error(`Pokus ${attempt} selhal:`, error);
+                    if (attempt === MAX_RETRIES) {
+                        // Toto byl poslední pokus, zobrazit chybovou hlášku
+                        const errorSpan = errorMessage.querySelector('span');
+                        errorSpan.textContent = `Nepodařilo se načíst data po několika pokusech. Důvod: ${error.message}`;
+                        errorMessage.style.display = 'block';
+                        departuresContainer.innerHTML = '';
+                        loadingIndicator.style.display = 'none';
                     } else {
-                        showError("Chyba při komunikaci se serverem (HTTP " + xhr.status + ").");
-                        console.error("XHR Error:", xhr.responseText);
+                        // Počkat před dalším pokusem
+                        await sleep(RETRY_DELAY);
                     }
                 }
-            };
-            xhr.open("GET", API_URL, true);
-            xhr.setRequestHeader("X-Access-Token", API_KEY);
-            xhr.send();
+            }
         }
 
-        function showError(message) {
-            errorText.textContent = message;
-            errorMessage.className = ''; // Zobrazit chybovou zprávu
-        }
-
-        // Funkce pro zobrazení odjezdů
         function displayDepartures(data) {
             departuresContainer.innerHTML = ''; 
 
             if (!data.departures || data.departures.length === 0) {
-                 stopNameElement.textContent = "Zastávka: Kněžská luka";
-                 departuresContainer.innerHTML = '<p style="text-align: center;">Pro tuto zastávku nebyly nalezeny žádné nadcházející odjezdy tramvají.</p>';
-                 return;
+                if (data.stops && data.stops.length > 0) {
+                     stopNameElement.textContent = `Zastávka: ${data.stops[0].stop_name}`;
+                } else {
+                     stopNameElement.textContent = `Zastávka: Kněžská luka`;
+                }
+                departuresContainer.innerHTML = `<p class="text-center col-span-full text-gray-500 dark:text-gray-400">Pro tuto zastávku nebyly nalezeny žádné nadcházející odjezdy tramvají.</p>`;
+                return;
             }
             
-            if (data.stops && data.stops.length > 0) {
-                stopNameElement.textContent = "Zastávka: " + data.stops[0].stop_name;
+            if(data.stops && data.stops.length > 0) {
+                stopNameElement.textContent = `Zastávka: ${data.stops[0].stop_name}`;
             }
-
-            var now = new Date();
-            lastRefreshedElement.textContent = "Aktualizováno: " + now.toLocaleTimeString('cs-CZ');
-
-            var html = '';
-            for (var i = 0; i < data.departures.length; i++) {
-                var departure = data.departures[i];
-
-                var departureTime = new Date(departure.departure_timestamp.predicted);
-                var timeString = departureTime.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
+            
+            data.departures.forEach(departure => {
+                const departureTime = new Date(departure.departure_timestamp.predicted);
+                const timeString = departureTime.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
                 
-                var delay = departure.delay.is_available ? departure.delay.minutes : null;
-                var delayInfo = '';
-                var delayColor = '#555'; // Šedá
+                const delay = departure.delay.is_available ? departure.delay.minutes : null;
+                let delayInfo = '';
                 if (delay !== null) {
                     if (delay === 0) {
-                        delayInfo = 'Na čas';
-                        delayColor = '#02964f'; // Zelená
+                        delayInfo = `<span class="text-green-600 dark:text-green-400 font-medium">Na čas</span>`;
                     } else if (delay > 0) {
-                        delayInfo = delay + ' min zpoždění';
-                        delayColor = '#d00'; // Červená
+                        delayInfo = `<span class="text-red-600 dark:text-red-400 font-medium">${delay} min zpoždění</span>`;
                     } else { 
-                         delayInfo = Math.abs(delay) + ' min náskok';
-                         delayColor = '#009ee0'; // Modrá
+                         delayInfo = `<span class="text-blue-600 dark:text-blue-400 font-medium">${Math.abs(delay)} min náskok</span>`;
                     }
                 } else {
-                    delayInfo = 'Info nedostupné';
+                    delayInfo = `<span class="text-gray-500 dark:text-gray-400">Info o zpoždění nedostupné</span>`
                 }
                 
-                var lineColor = '#3b82f6'; // Výchozí modrá
-                var tramNumber = departure.route.short_name;
+                // Barevné odlišení linek
+                let lineColor = '#3b82f6'; // Default blue
+                const tramNumber = departure.route.short_name;
                 if (tramNumber === '9') {
                     lineColor = '#009ee0';
                 } else if (tramNumber === '11') {
@@ -227,25 +174,32 @@
                     lineColor = '#808080';
                 }
 
-                html +=
-                    '<div class="tram-card">' +
-                        '<div class="card-top">' +
-                            '<div class="line-box"><span class="line-number" style="background-color: ' + lineColor + ';">' + tramNumber + '</span></div>' +
-                            '<div class="destination">' + departure.trip.headsign + '</div>' +
-                            '<div class="time">' + timeString + '</div>' +
-                        '</div>' +
-                        '<div class="card-bottom">' +
-                            '<div class="delay" style="color: ' + delayColor + ';">' + delayInfo + '</div>' +
-                            '<div class="platform">Nást.: ' + (departure.stop.platform_code || 'N/A') + '</div>' +
-                            '<div class="clear"></div>' +
-                        '</div>' +
-                    '</div>';
-            }
-            departuresContainer.innerHTML = html;
+                const card = `
+                    <div class="tram-card bg-white dark:bg-gray-800 rounded-lg shadow p-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center min-w-0">
+                                <span style="background-color: ${lineColor};" class="text-white text-lg font-bold rounded-md w-10 h-8 flex items-center justify-center flex-shrink-0">${tramNumber}</span>
+                                <h2 class="text-lg font-semibold ml-3 text-gray-800 dark:text-white truncate" title="${departure.trip.headsign}">${departure.trip.headsign}</h2>
+                            </div>
+                            <div class="text-xl font-bold text-gray-900 dark:text-gray-100 flex-shrink-0 ml-2">${timeString}</div>
+                        </div>
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-2">
+                            <div class="flex justify-between items-center text-xs text-gray-600 dark:text-gray-400">
+                                <div>${delayInfo}</div>
+                                <div>Nástupiště: ${departure.stop.platform_code || 'N/A'}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                departuresContainer.innerHTML += card;
+            });
         }
 
-        // Spustit aplikaci
+        // Načíst data při prvním spuštění
         fetchTramDepartures();
+
+        // Automatické obnovení každých 30 sekund
+        setInterval(fetchTramDepartures, 30000);
     </script>
 
 </body>
