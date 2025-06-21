@@ -62,8 +62,17 @@
         const STOP_ID = "U266Z1P"; // GTFS ID pro "Kněžská luka"
         const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MzcxMiwiaWF0IjoxNzUwNTAwOTIxLCJleHAiOjExNzUwNTAwOTIxLCJpc3MiOiJnb2xlbWlvIiwianRpIjoiNGE2MjY3NjYtZjYxOC00MjJhLTkwYTQtMzAyNmQ5ODZiMmY0In0.-aVvSoLgKJr5xv6VdVDW5dPFcJWiMP0TPEi344UJhdE";
 
+        // Konfigurace pro opakované pokusy
+        const MAX_RETRIES = 3;
+        const RETRY_DELAY = 3000; // 3 sekundy
+
         // Golemio API endpoint pro odjezdové tabule.
         const API_URL = `https://api.golemio.cz/v2/pid/departureboards?ids=${STOP_ID}&minutesAfter=120`;
+
+        // Pomocná funkce pro vytvoření prodlevy
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
 
         function updateRefreshTimer() {
             if (!lastRefreshTime) return;
@@ -75,37 +84,47 @@
             loadingIndicator.style.display = 'block';
             errorMessage.style.display = 'none';
 
-            try {
-                // Sestavení a provedení dotazu na API dle dokumentace
-                const response = await fetch(API_URL, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Access-Token': API_KEY
+            for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                try {
+                    // Sestavení a provedení dotazu na API dle dokumentace
+                    const response = await fetch(API_URL, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Access-Token': API_KEY
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorBody = await response.text();
+                        throw new Error(`HTTP ${response.status}: ${errorBody}`);
                     }
-                });
 
-                if (!response.ok) {
-                    const errorBody = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${errorBody}`);
+                    const data = await response.json();
+                    displayDepartures(data);
+
+                    lastRefreshTime = new Date();
+                    if (!refreshTimerInterval) {
+                        updateRefreshTimer(); // Spustit okamžitě
+                        refreshTimerInterval = setInterval(updateRefreshTimer, 1000);
+                    }
+                    
+                    loadingIndicator.style.display = 'none';
+                    return; // Úspěch, opustit funkci
+
+                } catch (error) {
+                    console.error(`Pokus ${attempt} selhal:`, error);
+                    if (attempt === MAX_RETRIES) {
+                        // Toto byl poslední pokus, zobrazit chybovou hlášku
+                        const errorSpan = errorMessage.querySelector('span');
+                        errorSpan.textContent = `Nepodařilo se načíst data po několika pokusech. Důvod: ${error.message}`;
+                        errorMessage.style.display = 'block';
+                        departuresContainer.innerHTML = '';
+                        loadingIndicator.style.display = 'none';
+                    } else {
+                        // Počkat před dalším pokusem
+                        await sleep(RETRY_DELAY);
+                    }
                 }
-
-                const data = await response.json();
-                displayDepartures(data);
-
-                lastRefreshTime = new Date();
-                if (!refreshTimerInterval) {
-                    updateRefreshTimer(); // Spustit okamžitě
-                    refreshTimerInterval = setInterval(updateRefreshTimer, 1000);
-                }
-                
-            } catch (error) {
-                console.error("Chyba při načítání odjezdů tramvají:", error);
-                const errorSpan = errorMessage.querySelector('span');
-                errorSpan.textContent = `Nepodařilo se načíst data. Důvod: ${error.message}`;
-                errorMessage.style.display = 'block';
-                departuresContainer.innerHTML = ''; 
-            } finally {
-                loadingIndicator.style.display = 'none';
             }
         }
 
