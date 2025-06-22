@@ -163,10 +163,16 @@
       }
 
       let lineColor = '#3b82f6';
-      const routeNum = dep.route.short_name;
-      if (routeNum === '9') lineColor = '#009ee0';
-      else if (routeNum === '11') lineColor = '#02964f';
-      else if (routeNum === '31') lineColor = '#808080';
+const routeNum = dep.route.short_name;
+
+// Tram colors
+if (routeNum === '9') lineColor = '#009ee0';
+else if (routeNum === '11') lineColor = '#02964f';
+else if (routeNum === '31') lineColor = '#808080';
+// Bus colors
+else if (routeNum === '177' || routeNum === '195') lineColor = '#E4113F'; // pinkish red
+else if (!isNaN(routeNum)) lineColor = '#808080'; // grey for other numeric routes
+
 
       const card = `
         <div class="tram-card bg-white dark:bg-gray-800 rounded-lg shadow p-3">
