@@ -196,7 +196,7 @@ else if (!isNaN(routeNum)) lineColor = '#808080'; // grey for other numeric rout
     STOP_ID = newStopId;
     if (fetchInterval) clearInterval(fetchInterval);
     fetchDepartures();
-    fetchInterval = setInterval(fetchDepartures, 30000);
+    fetchInterval = setInterval(fetchDepartures, 60000);
   }
 
   // Toggle handler
